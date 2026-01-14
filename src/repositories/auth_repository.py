@@ -6,7 +6,7 @@ class AuthRepository:
         self.session = Session()
 
     def get_user_by_username(self, username:str):
-        return self.session.query(User).filter(User.username == username)
+        return self.session.query(User).filter(User.username == username).first()
     
     def create_usser(self, username: str, hashed_password: str):
         user = User(username=username, password=hashed_password)

@@ -15,6 +15,7 @@ class Config():
     DB =  os.getenv("DATABASE_URL")
     PORT = int(os.getenv("PORT", 5000))
     DB_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    KEY = os.getenv("SECRET_KEY")
     Testing = False
     
 

@@ -1,15 +1,42 @@
 from flask import Blueprint
-from flask import request, redirect, url_for
-from flask_login import login_user, logout_user, login_required, current_user
+from flask import request
 from flask import jsonify
 from src.services.auth_service import AuthService
 
 auth_bp = Blueprint("auth",__name__)
 service = AuthService()
 
-@auth_bp.route("/")
+@auth_bp.route("/login", methods=["POST"])
 def login():
-    return "Login page"
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"message": "No data"}), 400
+
+        elif not data.get("username"):
+            return jsonify({"message": "Username is required"}), 400
+
+        elif not data.get("password"):
+            return jsonify({"message": "Password is required"}), 400
+
+        else:
+            username = data.get("username")
+            password = data.get("password")
+
+            token = service.authenticate(username, password)
+
+            return jsonify({
+                "message": "Login success",
+                "token": token
+            }), 200
+
+    except ValueError as e:
+        return jsonify({"message": str(e)}), 401
+
+    except Exception:
+        return jsonify({"message": "Internal server error"}), 500
+
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
