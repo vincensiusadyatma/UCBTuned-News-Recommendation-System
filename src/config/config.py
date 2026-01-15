@@ -10,7 +10,7 @@ DB_PORT = os.getenv("DB_PORT")
 DB_NAME = os.getenv("DB_NAME")
 
 class Config():
-    DEBUG = os.getenv("APP_DEBUG", "False") == "True"
+    DEBUG = os.getenv("APP_DEBUG", "false").lower() == "true"
     ENV = os.getenv("APP_ENV", "production")
     DB =  os.getenv("DATABASE_URL")
     PORT = int(os.getenv("PORT", 5000))

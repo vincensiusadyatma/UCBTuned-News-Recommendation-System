@@ -76,3 +76,15 @@ def register():
             "status": "error",
             "message": "Internal server error"
         }), 500
+    
+@auth_bp.route("/profile")
+def profile():
+    user = service.get_curent_user()
+
+    if not user:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    return jsonify({
+        "message": "Success",
+        "user": user
+    })

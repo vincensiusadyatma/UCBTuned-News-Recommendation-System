@@ -3,6 +3,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta, timezone
 import jwt
 from src.config import Config
+from flask import request
+from src.config import Config
 
 class AuthService:
     def __init__(self):
@@ -28,3 +30,22 @@ class AuthService:
         )
 
         return token
+    
+    def get_curent_user(self):
+        auth_header = request.headers.get("Authorization")
+
+        if not auth_header:
+            return None
+
+        try:
+            token = auth_header.split(" ")[1]  # Bearer <token>
+            payload = jwt.decode(
+                token,
+                Config.KEY,
+                algorithms=["HS256"]
+            )
+            return payload  # isinya data user
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
