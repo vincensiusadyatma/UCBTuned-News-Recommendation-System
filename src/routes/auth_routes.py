@@ -14,28 +14,31 @@ def login():
         if not data:
             return jsonify({"message": "No data"}), 400
 
-        elif not data.get("username"):
+        if not data.get("username"):
             return jsonify({"message": "Username is required"}), 400
 
-        elif not data.get("password"):
+        if not data.get("password"):
             return jsonify({"message": "Password is required"}), 400
 
-        else:
-            username = data.get("username")
-            password = data.get("password")
+        username = data.get("username")
+        password = data.get("password")
 
-            token = service.authenticate(username, password)
+        result = service.authenticate(username, password)
 
-            return jsonify({
-                "message": "Login success",
-                "token": token
-            }), 200
+        return jsonify({
+            "message": "Login success",
+            "token": result["token"],
+            "expires_at": result["expires_at"],
+            "expires_in": result["expires_in"]
+        }), 200
 
     except ValueError as e:
         return jsonify({"message": str(e)}), 401
 
-    except Exception:
+    except Exception as e:
+        print(e)
         return jsonify({"message": "Internal server error"}), 500
+
 
 
 @auth_bp.route("/register", methods=["POST"])
@@ -79,12 +82,13 @@ def register():
     
 @auth_bp.route("/profile")
 def profile():
-    user = service.get_curent_user()
+    user = service.get_current_user()
 
     if not user:
         return jsonify({"message": "Unauthorized"}), 401
 
     return jsonify({
         "message": "Success",
-        "user": user
+        "user_id" : user.id,
+        "username" : user.username
     })
