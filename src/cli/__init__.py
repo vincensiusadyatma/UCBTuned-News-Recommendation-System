@@ -1,0 +1,1 @@
+from .news_seed_cli import news_seeding

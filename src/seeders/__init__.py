@@ -1,0 +1,1 @@
+from .news_seed import seed_news
