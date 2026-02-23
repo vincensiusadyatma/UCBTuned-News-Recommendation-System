@@ -3,6 +3,19 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from src.models import News
 from src.config import Session
+from src.services.preprocessing_service import PreprocessingService
+
+def generate_preprocessed_csv():
+    df = pd.read_csv("dataset/politik_merge.csv")
+
+    df = df.head(10) 
+
+    preprocessor = PreprocessingService()
+
+    df["Judul"] = df["Judul"].apply(preprocessor.preprocess)
+    df["Content"] = df["Content"].apply(preprocessor.preprocess)
+
+    df.to_csv("dataset/news_preprocess.csv", index=False)
 
 
 def seed_news():
