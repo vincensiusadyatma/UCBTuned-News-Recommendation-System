@@ -11,8 +11,7 @@ class AuthRepository:
     def get_user_by_id(self, user_id: int):
         return self.session.query(User).filter(User.id == user_id).first()
 
-    
-    def create_usser(self, username: str, hashed_password: str):
+    def create_user(self, username: str, hashed_password: str):
         user = User(username=username, password=hashed_password)
         self.session.add(user)
         self.session.commit()

@@ -11,7 +11,7 @@ class AuthService:
 
     def register(self, username,password):
         hashedPW = generate_password_hash(password)
-        self.repo.create_usser(username,hashedPW)
+        self.repo.create_user(username,hashedPW)
 
     def authenticate(self, username, password):
         user = self.repo.get_user_by_username(username)
