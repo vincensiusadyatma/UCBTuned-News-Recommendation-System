@@ -27,19 +27,18 @@ class AuthService:
             "exp": expires_at
         }
 
-        token = jwt.encode(
-            payload,
-            Config.KEY,
-            algorithm="HS256"
-        )
+        token = jwt.encode(payload, Config.KEY, algorithm="HS256")
 
         expires_in = int((expires_at - now).total_seconds())
 
-        return {
+        response = {
             "token": token,
             "expires_at": expires_at.isoformat(),
             "expires_in": expires_in
         }
+
+        return response
+    
 
     
     def get_current_user(self):
