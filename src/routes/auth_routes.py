@@ -114,3 +114,10 @@ def profile():
         "user_id" : user.id,
         "username" : user.username
     })
+
+
+@auth_bp.route("/logout", methods=["POST"])
+def logout():
+    response = make_response(jsonify({"message": "logout success"}))
+    response.delete_cookie("access-token")
+    return response
