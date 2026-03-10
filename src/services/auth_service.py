@@ -42,13 +42,10 @@ class AuthService:
 
     
     def get_current_user(self):
-        auth_header = request.headers.get("Authorization")
-
-        if not auth_header:
+        token = request.cookies.get("access-token")
+        if not token:
             return None
-
         try:
-            token = auth_header.split(" ")[1]
             payload = jwt.decode(
                 token,
                 Config.KEY,
@@ -56,12 +53,9 @@ class AuthService:
             )
 
             user_id = payload["user_id"]
-
             user = self.repo.get_user_by_id(user_id)
 
             return user
 
         except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
             return None
