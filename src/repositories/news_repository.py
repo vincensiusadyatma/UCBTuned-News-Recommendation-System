@@ -1,5 +1,6 @@
 from src.config import Session
 from src.models.News import News
+from sqlalchemy import func
 
 class NewsRepository:
     def __init__(self):
@@ -28,3 +29,16 @@ class NewsRepository:
     
     def count_all(self):
         return self.session.query(News).count()
+    
+    def search_by_title(self, keyword: str, page: int = 1, per_page: int = 20):
+
+        query = self.session.query(News).filter(
+            func.lower(News.title).op("REGEXP")(f"\\b{keyword}\\b")
+        ).order_by(News.time.desc())
+
+        return query.offset((page - 1) * per_page).limit(per_page).all()
+
+    def count_search(self, keyword: str):
+        return self.session.query(News).filter(
+            News.title.ilike(f"%{keyword}%")
+        ).count()

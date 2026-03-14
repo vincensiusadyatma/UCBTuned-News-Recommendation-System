@@ -47,23 +47,6 @@ def get_total_pages():
     })
 
 
-@news_bp.route("/<int:news_id>", methods=["GET"])
-def get_news_by_id(news_id):
-    try:
-        news = news_service.get_news_by_id(news_id)
-        return jsonify({
-            "id": news.id,
-            "title": news.title,
-            "link": news.link,
-            "source": news.source,
-            "tags": [news.tag1, news.tag2, news.tag3, news.tag4, news.tag5]
-        })
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 404
-
-
-
-
 @news_bp.route("/<int:news_id>", methods=["DELETE"])
 def delete_news(news_id):
     try:
@@ -71,3 +54,45 @@ def delete_news(news_id):
         return jsonify({"message": "News deleted successfully"})
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
+
+@news_bp.route("/<int:news_id>", methods=["GET"])
+def get_news_by_id(news_id):
+    try:
+        news = news_service.get_news_by_id(news_id)
+
+        return jsonify({
+            "id": news.id,
+            "title": news.title,
+            "content": news.content,
+            "source": news.source,
+            "link": news.link,
+            "time": news.time,
+            
+        })
+
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+    
+@news_bp.route("/search", methods=["GET"])
+def search_news():
+
+        keyword = request.args.get("q", "")
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 20))
+
+        news_list = news_service.search_news(keyword, page, per_page)
+
+        total_pages = news_service.get_search_total_pages(keyword, per_page)
+
+        return jsonify({
+            "query": keyword,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": total_pages,
+            "news": [{
+                "id": n.id,
+                "title": n.title,
+                "link": n.link,
+                "content": n.content
+            } for n in news_list]
+        })

@@ -17,8 +17,7 @@ class NewsService:
         if not news:
             raise ValueError(f"News with ID {news_id} not found")
         return news
-
-
+    
 
     def delete_news(self, news_id: int):
         success = self.news_repo.delete_news(news_id)
@@ -29,4 +28,14 @@ class NewsService:
     def get_total_pages(self, per_page: int = 20):
         total_items = self.news_repo.count_all()
         total_pages = (total_items + per_page - 1) // per_page  
+        return total_pages
+    
+
+    def search_news(self, keyword: str, page: int = 1, per_page: int = 20):
+        return self.news_repo.search_by_title(keyword, page, per_page)
+
+
+    def get_search_total_pages(self, keyword: str, per_page: int = 20):
+        total_items = self.news_repo.count_search(keyword)
+        total_pages = (total_items + per_page - 1) // per_page
         return total_pages
