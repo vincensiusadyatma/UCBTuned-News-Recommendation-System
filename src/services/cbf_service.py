@@ -1,91 +1,146 @@
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+import math
+from collections import Counter
 from src.repositories import CbfRepository
 
 
 class CbfService:
     def __init__(self, input_csv="dataset/news_preprocess.csv"):
         self.input_csv = input_csv
-        self.vectorizer = TfidfVectorizer(
-            max_features=5000,
-            ngram_range=(1, 2)
-        )
-
         self.repo = CbfRepository()
 
-    def compute_tfidf(self, tfidf_out="dataset/tfidf_matrix.csv"):
+    def compute_tf(self, text):
+        words = text.split()
+        freq = Counter(words)
+
+        # cari max frequency
+        if len(freq) == 0:
+            max_freq = 1
+        else:
+            max_freq = max(freq.values())
+
+        tf = {}
+
+        for word in freq:
+            count = freq[word]
+            tf[word] = count / max_freq
+
+        return tf
+
+ 
+    def compute_idf(self, documents):
+        N = len(documents)
+        word_doc_count = {}
+
+        for text in documents:
+            words = text.split()
+            unique_words = set(words)
+
+            for word in unique_words:
+                if word in word_doc_count:
+                    word_doc_count[word] = word_doc_count[word] + 1
+                else:
+                    word_doc_count[word] = 1
+
+        idf = {}
+
+        for word in word_doc_count:
+            ni = word_doc_count[word]
+            idf[word] = math.log(N / ni)
+
+        return idf
+
+
+    def compute_tfidf(self, tf_dict, idf_dict):
+        tfidf = {}
+
+        for word in tf_dict:
+            if word in idf_dict:
+                tfidf[word] = tf_dict[word] * idf_dict[word]
+            else:
+                tfidf[word] = 0
+
+        return tfidf
+
+
+    def cosine_similarity(self, vec1, vec2):
+        dot_product = 0
+
+        for word in vec1:
+            if word in vec2:
+                dot_product = dot_product + (vec1[word] * vec2[word])
+
+        norm1 = 0
+        for value in vec1.values():
+            norm1 = norm1 + (value * value)
+        norm1 = math.sqrt(norm1)
+
+        norm2 = 0
+        for value in vec2.values():
+            norm2 = norm2 + (value * value)
+        norm2 = math.sqrt(norm2)
+
+        if norm1 == 0:
+            return 0
+
+        if norm2 == 0:
+            return 0
+
+        return dot_product / (norm1 * norm2)
+
+ 
+    def compute_tfidf_manual(self):
         df = pd.read_csv(self.input_csv)
+        df = df.reset_index(drop=True)
 
         df["cbf_text"] = df["Judul"].fillna("") + " " + df["Content"].fillna("")
 
-        tfidf_matrix = self.vectorizer.fit_transform(df["cbf_text"])
+        # TF
+        tf_list = []
+        for text in df["cbf_text"]:
+            tf_list.append(self.compute_tf(text))
+        df["TF"] = tf_list
 
-        tfidf_df = pd.DataFrame(
-            tfidf_matrix.toarray(),
-            columns=self.vectorizer.get_feature_names_out()
-        )
+        # IDF
+        idf = self.compute_idf(df["cbf_text"])
 
-        tfidf_df.to_csv(tfidf_out, index=False)
+        # TF-IDF
+        tfidf_list = []
+        for tf in df["TF"]:
+            tfidf_list.append(self.compute_tfidf(tf, idf))
+        df["TF_IDF"] = tfidf_list
 
-        return {
-            "rows": len(df),
-            "shape": tfidf_df.shape,
-            "tfidf_out": tfidf_out
-        }
+        return df
 
-    def compute_similarity(self, tfidf_csv="dataset/tfidf_matrix.csv", export_csv="dataset/news_similarity_topk.csv", top_k=5):
-        tfidf_df = pd.read_csv(tfidf_csv)
-        similarity_matrix = cosine_similarity(tfidf_df.values)
-
+ 
+    def compute_similarity(self):
+        df = self.compute_tfidf_manual()
         news_list = self.repo.get_all_news_ordered()
 
-        rows_to_insert = []
-        rows_to_export = []
+        if len(news_list) != len(df):
+            raise ValueError("Jumlah data tidak sama")
 
-        for i, news in enumerate(news_list):
-            scores = similarity_matrix[i]
+        rows = []
 
-            ranked_indices = scores.argsort()[::-1]
-            ranked_indices = [idx for idx in ranked_indices if idx != i][:top_k]
+        for i in range(len(df)):
+            for j in range(len(df)):
 
-            for j in ranked_indices:
-                rows_to_insert.append({
-                    "news_id": news.id,
-                    "similar_news_id": news_list[j].id,
-                    "score": float(scores[j])
-                })
+                if i == j:
+                    continue
 
-                rows_to_export.append({
-                    "news_id": news.id,
-                    "similar_news_id": news_list[j].id,
-                    "score": float(scores[j])
-                })
+                sim = self.cosine_similarity(
+                    df["TF_IDF"].iloc[i],
+                    df["TF_IDF"].iloc[j]
+                )
+
+                data = {}
+                data["news_id"] = news_list[i].id
+                data["similar_news_id"] = news_list[j].id
+                data["score"] = float(sim)
+
+                rows.append(data)
 
         self.repo.clear_similarity()
-        self.repo.insert_similarity(rows_to_insert)
+        self.repo.insert_similarity(rows)
 
-        pd.DataFrame(rows_to_export).to_csv(export_csv, index=False)
-        return {
-            "rows_inserted": len(rows_to_insert),
-            "export_csv": export_csv,
-            "top_k": top_k
-        }
-
-    def recomendation(self, news_id: int, top_k: int = 5):
-        try:
-            similarities = self.repo.get_top_similar_news(news_id, top_k)
-
-            results = []
-            for sim in similarities:
-                results.append({
-                    "news_id": sim.similar_news.id,
-                    "title": sim.similar_news.title,
-                    # "content": sim.similar_news.content,
-                    "score": float(sim.score),
-                })
-
-            return results
-        finally:
-            print("selesai")
-        
+        return rows

@@ -8,53 +8,56 @@ class UcbTunedService:
         self.ucb_repo = UcbTunedRepository()
         self.cbf_service = CbfService()
 
-    def _mean_reward(self, rewards: list[int]) -> float:
+    def _mean_reward(self, rewards):
         if not rewards:
             return 0.0
         return sum(rewards) / len(rewards)
 
-    def _variance_vj(self, rewards: list[int], t: int) -> float:
+    def _variance_vj(self, rewards, t):
         s = len(rewards)
         if s == 0:
             return 0.0
 
-        t = max(t, 2)  
+        t = max(t, 2)
 
         mean = self._mean_reward(rewards)
         mean_square = sum(x**2 for x in rewards) / s
 
-        return (
-            mean_square
-            - (mean ** 2)
-            + math.sqrt((2 * math.log(t)) / s)
-        )
+        return mean_square - (mean ** 2) + math.sqrt((2 * math.log(t)) / s)
 
- 
-    def _ucb_tuned_score(self, rewards: list[int], t: int) -> float:
+    def _ucb_tuned_score(self, rewards, t):
         s = len(rewards)
         if s == 0:
-            return 0.0 
+            return 0.0
 
         t = max(t, 2)
 
         mean = self._mean_reward(rewards)
         vj = self._variance_vj(rewards, t)
 
-        bonus = math.sqrt(
-            (2 * math.log(t) / s) * min(0.25, vj)
-        )
+        bonus = math.sqrt((math.log(t) / s) * min(0.25, vj))
 
         return mean + bonus
 
-    def recommend(self, news_id: int, top_k: int = 5):
-        cbf_candidates = self.cbf_service.recomendation(news_id, top_k=top_k)
+    def recommend(self, news_id, top_k=5, candidate_size=20):
+        candidate_size = max(candidate_size, top_k)
+
+        cbf_candidates = self.cbf_service.recomendation(
+            news_id,
+            candidate_size=candidate_size
+        )
 
         if not cbf_candidates:
-            return []
+            return {
+                "recommendations": [],
+                "all_ranked": []
+            }
 
+        # 🔥 ambil feedback
         candidate_ids = [item["news_id"] for item in cbf_candidates]
         feedback_stats = self.ucb_repo.get_feedback_by_news_ids(candidate_ids)
 
+        # 🔥 total interaksi
         t = sum(len(v.get("rewards", [])) for v in feedback_stats.values())
         t = max(t, 2)
 
@@ -78,8 +81,13 @@ class UcbTunedService:
                 "V_j": float(vj)
             })
 
+        # 🔥 ranking
         ranked.sort(key=lambda x: x["ucb_score"], reverse=True)
-        return ranked
+
+        return {
+            "recommendations": ranked[:top_k],
+            "all_ranked": ranked
+        }
 
     def close(self):
         self.ucb_repo.close()
