@@ -9,7 +9,7 @@ service = CbfService()
 def recommend_news(news_id):
     candidate_size = request.args.get("candidate_size", default=20, type=int)
 
-    results = service.recomendation(
+    results = service.recommendation(
         news_id,
         candidate_size=candidate_size
     )
