@@ -1,91 +1,158 @@
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+import math
+from collections import Counter
 from src.repositories import CbfRepository
 
 
 class CbfService:
     def __init__(self, input_csv="dataset/news_preprocess.csv"):
         self.input_csv = input_csv
-        self.vectorizer = TfidfVectorizer(
-            max_features=5000,
-            ngram_range=(1, 2)
-        )
-
         self.repo = CbfRepository()
 
-    def compute_tfidf(self, tfidf_out="dataset/tfidf_matrix.csv"):
-        df = pd.read_csv(self.input_csv)
 
+    def compute_tf(self, text):
+        words = text.split()
+        freq = Counter(words)
+
+        max_freq = max(freq.values()) if len(freq) > 0 else 1
+
+        tf = {}
+        for word in freq:
+            tf[word] = freq[word] / max_freq
+
+        return tf
+
+    def compute_idf(self, documents):
+        N = len(documents)
+        word_doc_count = {}
+
+        for text in documents:
+            words = text.split()
+            unique_words = set(words)
+
+            for word in unique_words:
+                word_doc_count[word] = word_doc_count.get(word, 0) + 1
+
+        idf = {}
+        for word, ni in word_doc_count.items():
+            idf[word] = math.log(N / ni)
+
+        return idf
+
+
+    def compute_tfidf_vector(self, tf_dict, idf_dict):
+        tfidf = {}
+
+        for word in tf_dict:
+            tfidf[word] = tf_dict[word] * idf_dict.get(word, 0)
+
+        return tfidf
+
+
+    def cosine_similarity(self, vec1, vec2):
+        dot_product = 0
+
+        for word in vec1:
+            if word in vec2:
+                dot_product += vec1[word] * vec2[word]
+
+        norm1 = math.sqrt(sum(v * v for v in vec1.values()))
+        norm2 = math.sqrt(sum(v * v for v in vec2.values()))
+
+        if norm1 == 0 or norm2 == 0:
+            return 0
+
+        return dot_product / (norm1 * norm2)
+
+    def compute_tfidf(self):
+        df = pd.read_csv(self.input_csv)
+        df = df.reset_index(drop=True)
+
+       
         df["cbf_text"] = df["Judul"].fillna("") + " " + df["Content"].fillna("")
 
-        tfidf_matrix = self.vectorizer.fit_transform(df["cbf_text"])
+   
+        df["TF"] = df["cbf_text"].apply(self.compute_tf)
 
-        tfidf_df = pd.DataFrame(
-            tfidf_matrix.toarray(),
-            columns=self.vectorizer.get_feature_names_out()
-        )
+        idf = self.compute_idf(df["cbf_text"])
 
-        tfidf_df.to_csv(tfidf_out, index=False)
+        df["TF_IDF"] = df["TF"].apply(lambda tf: self.compute_tfidf_vector(tf, idf))
 
-        return {
-            "rows": len(df),
-            "shape": tfidf_df.shape,
-            "tfidf_out": tfidf_out
-        }
+        return df
 
-    def compute_similarity(self, tfidf_csv="dataset/tfidf_matrix.csv", export_csv="dataset/news_similarity_topk.csv", top_k=5):
-        tfidf_df = pd.read_csv(tfidf_csv)
-        similarity_matrix = cosine_similarity(tfidf_df.values)
 
+    def compute_similarity(self):
+        df = self.compute_tfidf()
         news_list = self.repo.get_all_news_ordered()
 
-        rows_to_insert = []
-        rows_to_export = []
+        if len(news_list) != len(df):
+            raise ValueError("Jumlah data tidak sama")
 
-        for i, news in enumerate(news_list):
-            scores = similarity_matrix[i]
+        rows = []
 
-            ranked_indices = scores.argsort()[::-1]
-            ranked_indices = [idx for idx in ranked_indices if idx != i][:top_k]
+        for i in range(len(df)):
+            for j in range(len(df)):
+                if i == j:
+                    continue
 
-            for j in ranked_indices:
-                rows_to_insert.append({
-                    "news_id": news.id,
+                sim = self.cosine_similarity(
+                    df["TF_IDF"].iloc[i],
+                    df["TF_IDF"].iloc[j]
+                )
+
+                rows.append({
+                    "news_id": news_list[i].id,
                     "similar_news_id": news_list[j].id,
-                    "score": float(scores[j])
-                })
-
-                rows_to_export.append({
-                    "news_id": news.id,
-                    "similar_news_id": news_list[j].id,
-                    "score": float(scores[j])
+                    "score": float(sim)
                 })
 
         self.repo.clear_similarity()
-        self.repo.insert_similarity(rows_to_insert)
+        self.repo.insert_similarity(rows)
 
-        pd.DataFrame(rows_to_export).to_csv(export_csv, index=False)
-        return {
-            "rows_inserted": len(rows_to_insert),
-            "export_csv": export_csv,
-            "top_k": top_k
+        return rows
+
+    def recommendation(self, news_id, candidate_size=20):
+        df = self.compute_tfidf()
+        news_list = self.repo.get_all_news_ordered()
+
+        if len(news_list) != len(df):
+            raise ValueError("Jumlah data tidak sama")
+        
+        news_map = {
+            news.id: news.title
+            for news in news_list
         }
 
-    def recomendation(self, news_id: int, top_k: int = 5):
-        try:
-            similarities = self.repo.get_top_similar_news(news_id, top_k)
+        target_index = None
+        for i, news in enumerate(news_list):
+            if news.id == news_id:
+                target_index = i
+                break
 
-            results = []
-            for sim in similarities:
-                results.append({
-                    "news_id": sim.similar_news.id,
-                    "title": sim.similar_news.title,
-                    # "content": sim.similar_news.content,
-                    "score": float(sim.score),
-                })
+        if target_index is None:
+            raise ValueError("News ID tidak ditemukan")
 
-            return results
-        finally:
-            print("selesai")
-        
+        target_vec = df["TF_IDF"].iloc[target_index]
+
+        results = []
+
+        for i in range(len(df)):
+            if i == target_index:
+                continue
+
+            sim = self.cosine_similarity(
+                target_vec,
+                df["TF_IDF"].iloc[i]
+            )
+
+            results.append({
+                "news_id": news_id,
+                "similar_news_id": news_list[i].id,
+                "title": news_map.get(news_list[i].id, "Tanpa Judul"),
+                "score": float(sim)
+            })
+
+       
+        results = sorted(results, key=lambda x: x["score"], reverse=True)
+
+        return results[:candidate_size]

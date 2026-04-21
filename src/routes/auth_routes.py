@@ -2,7 +2,7 @@ from flask import Blueprint
 from flask import request
 from flask import jsonify
 from src.services.auth_service import AuthService
-
+from flask import make_response
 auth_bp = Blueprint("auth",__name__)
 service = AuthService()
 
@@ -25,12 +25,33 @@ def login():
 
         result = service.authenticate(username, password)
 
-        return jsonify({
-            "message": "Login success",
-            "token": result["token"],
+        response = make_response( jsonify({
+            "status" : "success",
+            "token": result["token"],       
             "expires_at": result["expires_at"],
             "expires_in": result["expires_in"]
-        }), 200
+        }))
+
+        response.set_cookie(
+            "access-token", 
+            result["token"],
+            expires=result["expires_at"],
+            httponly=True
+        )
+
+        return response
+
+    except ValueError as e:
+        return jsonify({"message": str(e)}), 401
+
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500
+
+    except ValueError as e:
+        return jsonify({"message": str(e)}), 401
+
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500
 
     except ValueError as e:
         return jsonify({"message": str(e)}), 401
@@ -93,3 +114,10 @@ def profile():
         "user_id" : user.id,
         "username" : user.username
     })
+
+
+@auth_bp.route("/logout", methods=["POST"])
+def logout():
+    response = make_response(jsonify({"message": "logout success"}))
+    response.delete_cookie("access-token")
+    return response

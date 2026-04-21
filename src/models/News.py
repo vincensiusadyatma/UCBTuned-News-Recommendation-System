@@ -27,5 +27,11 @@ class News(Base):
         cascade="all, delete-orphan"
     )
 
+    feedbacks = relationship(
+        "NewsFeedback",
+        back_populates="news",
+        cascade="all, delete-orphan"
+    )
+
     def __repr__(self):
         return f"<News(title='{self.title}', source='{self.source}')>"

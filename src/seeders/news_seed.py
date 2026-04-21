@@ -8,7 +8,7 @@ from src.services.preprocessing_service import PreprocessingService
 def generate_preprocessed_csv():
     df = pd.read_csv("dataset/politik_merge.csv")
 
-    df = df.head(10) 
+    df = df.head(100) 
 
     preprocessor = PreprocessingService()
 

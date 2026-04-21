@@ -27,29 +27,25 @@ class AuthService:
             "exp": expires_at
         }
 
-        token = jwt.encode(
-            payload,
-            Config.KEY,
-            algorithm="HS256"
-        )
+        token = jwt.encode(payload, Config.KEY, algorithm="HS256")
 
         expires_in = int((expires_at - now).total_seconds())
 
-        return {
+        response = {
             "token": token,
             "expires_at": expires_at.isoformat(),
             "expires_in": expires_in
         }
 
+        return response
+    
+
     
     def get_current_user(self):
-        auth_header = request.headers.get("Authorization")
-
-        if not auth_header:
+        token = request.cookies.get("access-token")
+        if not token:
             return None
-
         try:
-            token = auth_header.split(" ")[1]
             payload = jwt.decode(
                 token,
                 Config.KEY,
@@ -57,12 +53,9 @@ class AuthService:
             )
 
             user_id = payload["user_id"]
-
             user = self.repo.get_user_by_id(user_id)
 
             return user
 
         except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
             return None
