@@ -62,7 +62,7 @@ class UcbTunedService:
 
         feedback_stats = self.ucb_repo.get_feedback_by_news_ids(candidate_ids)
 
-        # total interaksi global
+       
         t = sum(len(v.get("rewards", [])) for v in feedback_stats.values())
         t = max(t, 2)
 

@@ -1,7 +1,7 @@
 from flask import Flask
 from src.config import Config
 
-from src.routes import auth_bp, cbf_bp, ucb_tuned_bp,news_bp
+from src.routes import auth_bp, cbf_bp, ucb_tuned_bp,news_bp, recommendation_log_bp, evaluation_bp
 from .cli import news_seeding, cbf_precompute
 from flask_cors import CORS
 
@@ -15,6 +15,8 @@ def createApp():
     app.register_blueprint(cbf_bp)
     app.register_blueprint(ucb_tuned_bp)
     app.register_blueprint(news_bp)
+    app.register_blueprint(recommendation_log_bp)
+    app.register_blueprint(evaluation_bp)
  
 
     return app
