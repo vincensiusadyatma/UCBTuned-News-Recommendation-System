@@ -15,7 +15,7 @@ class EvaluationResult(Base):
     precision = Column(Float, nullable=True)
     recall = Column(Float, nullable=True)
     f1_score = Column(Float, nullable=True)
-    mean_average_precision = Column(Float, nullable=True)
+    average_precision = Column(Float, nullable=True)
    
     k = Column(Integer, nullable=True)  
 

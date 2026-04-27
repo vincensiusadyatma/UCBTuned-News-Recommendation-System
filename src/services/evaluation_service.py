@@ -6,7 +6,7 @@ class EvaluationService:
 
     def __init__(self, db: Session):
         self.db = db
-        self.repo = EvaluationRepository()
+        self.repo = EvaluationRepository(db) 
 
     def precision_at_k(self, recommended, relevant, k):
         rec_k = recommended[:k]
@@ -31,7 +31,6 @@ class EvaluationService:
 
         return score / len(relevant) if relevant else 0
 
-
     def calculate_mean_metrics(self, evaluation_data: list[dict]):
         if not evaluation_data:
             return {
@@ -43,14 +42,9 @@ class EvaluationService:
 
         n = len(evaluation_data)
 
-        mean_precision = sum(d["precision"] for d in evaluation_data) / n
-        mean_recall = sum(d["recall"] for d in evaluation_data) / n
-        mean_f1 = sum(d["f1_score"] or 0 for d in evaluation_data) / n
-        mean_map = sum(d["map_score"] or 0 for d in evaluation_data) / n
-
         return {
-            "precision": mean_precision,
-            "recall": mean_recall,
-            "f1_score": mean_f1,
-            "map": mean_map
+            "precision": sum(d["precision"] for d in evaluation_data) / n,
+            "recall": sum(d["recall"] for d in evaluation_data) / n,
+            "f1_score": sum(d["f1_score"] for d in evaluation_data) / n,
+            "map": sum(d["average_precision"] or 0 for d in evaluation_data) / n
         }
