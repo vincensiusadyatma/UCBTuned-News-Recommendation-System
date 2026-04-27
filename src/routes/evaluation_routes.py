@@ -236,3 +236,29 @@ def get_ap():
 
     finally:
         session.close()
+
+@evaluation_bp.route("/evaluation/map", methods=["GET"])
+def get_map():
+    session = Session()
+
+    try:
+        service = EvaluationService(session)
+        results = service.repo.get_all()
+
+        # ubah ke dict
+        evaluation_data = [
+            {
+                "user_id": r.user_id,
+                "average_precision": r.average_precision or 0
+            }
+            for r in results
+        ]
+
+        map_score = service.calculate_map(evaluation_data)
+
+        return jsonify({
+            "map": map_score
+        })
+
+    finally:
+        session.close()

@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from collections import defaultdict
 from src.repositories.evaluation_repository import EvaluationRepository
 
 
@@ -6,8 +7,9 @@ class EvaluationService:
 
     def __init__(self, db: Session):
         self.db = db
-        self.repo = EvaluationRepository(db) 
+        self.repo = EvaluationRepository(db)
 
+  
     def precision_at_k(self, recommended, relevant, k):
         rec_k = recommended[:k]
         return len(set(rec_k) & set(relevant)) / k if k > 0 else 0
@@ -31,6 +33,27 @@ class EvaluationService:
 
         return score / len(relevant) if relevant else 0
 
+
+    def calculate_map(self, evaluation_data: list[dict]):
+        if not evaluation_data:
+            return 0
+
+        user_ap = defaultdict(list)
+
+
+        for d in evaluation_data:
+            user_ap[d["user_id"]].append(d.get("average_precision", 0) or 0)
+
+    
+        mean_per_user = [
+            sum(ap_list) / len(ap_list)
+            for ap_list in user_ap.values()
+        ]
+
+   
+        return sum(mean_per_user) / len(mean_per_user) if mean_per_user else 0
+
+
     def calculate_mean_metrics(self, evaluation_data: list[dict]):
         if not evaluation_data:
             return {
@@ -46,5 +69,5 @@ class EvaluationService:
             "precision": sum(d["precision"] for d in evaluation_data) / n,
             "recall": sum(d["recall"] for d in evaluation_data) / n,
             "f1_score": sum(d["f1_score"] for d in evaluation_data) / n,
-            "map": sum(d["average_precision"] or 0 for d in evaluation_data) / n
+            "map": self.calculate_map(evaluation_data) 
         }
