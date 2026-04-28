@@ -19,8 +19,8 @@ def generate_preprocessed_csv():
 
 
 def seed_news():
-    df = pd.read_csv("dataset/news_preprocess.csv")
-
+    df = pd.read_csv("dataset/politik_merge.csv")
+    df = df.head(100) 
     session = Session()
 
     total_inserted = 0
