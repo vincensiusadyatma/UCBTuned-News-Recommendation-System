@@ -12,6 +12,8 @@ def generate_preprocessed_csv():
 
     preprocessor = PreprocessingService()
 
+    df = df[["Judul", "Content"]]
+
     df["Judul"] = df["Judul"].apply(preprocessor.preprocess)
     df["Content"] = df["Content"].apply(preprocessor.preprocess)
 

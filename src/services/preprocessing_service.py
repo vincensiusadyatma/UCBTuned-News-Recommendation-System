@@ -15,16 +15,23 @@ class PreprocessingService:
         if text is None or pd.isna(text):
             return ""
 
-        text = text.lower()
+        # 1. Cleaning
         text = BeautifulSoup(text, "html.parser").get_text()
         text = re.sub(r'http\S+|www\S+', '', text)
         text = re.sub(r'\d+', '', text)
         text = text.translate(str.maketrans('', '', string.punctuation))
         text = re.sub(r'\s+', ' ', text).strip()
 
+        # 2. Casefolding
+        text = text.lower()
+
+        # 3. Tokenisasi
         tokens = word_tokenize(text)
+
+        # 4. Stopword removal
         tokens = [w for w in tokens if w not in self.stop_words and len(w) > 2]
+
+        # 5. Stemming
         tokens = [self.stemmer.stem(w) for w in tokens]
 
         return " ".join(tokens)
-    
