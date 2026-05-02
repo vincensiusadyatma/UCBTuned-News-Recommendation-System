@@ -39,3 +39,28 @@ class NewsService:
         total_items = self.news_repo.count_search(keyword)
         total_pages = (total_items + per_page - 1) // per_page
         return total_pages
+    
+
+    def create_news(self, title: str, content: str):
+        if not title or not content:
+            raise ValueError("Title dan content tidak boleh kosong")
+
+        return self.news_repo.create_news(title, content)
+    
+
+    def update_news(self, news_id: int, title: str = None, content: str = None):
+        if not title and not content:
+            raise ValueError("Minimal salah satu field harus diisi (title/content)")
+
+        updated_news = self.news_repo.update_news(news_id, title, content)
+        if not updated_news:
+            raise ValueError(f"News with ID {news_id} not found")
+
+        return updated_news
+    
+
+    def delete_news(self, news_id: int):
+        success = self.news_repo.delete_news(news_id)
+        if not success:
+            raise ValueError(f"News with ID {news_id} not found")
+        return success
