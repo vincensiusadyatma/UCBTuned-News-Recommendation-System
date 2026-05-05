@@ -121,3 +121,23 @@ def logout():
     response = make_response(jsonify({"message": "logout success"}))
     response.delete_cookie("access-token")
     return response
+
+@auth_bp.route("/users", methods=["GET"])
+def get_users():
+    try:
+        page = request.args.get("page", default=1, type=int)
+        per_page = request.args.get("per_page", default=20, type=int)
+
+        result = service.get_all_users(page, per_page)
+
+        return jsonify({
+            "status": "success",
+            **result
+        })
+
+    except Exception as e:
+        print(e)
+        return jsonify({
+            "status": "error",
+            "message": "Internal server error"
+        }), 500

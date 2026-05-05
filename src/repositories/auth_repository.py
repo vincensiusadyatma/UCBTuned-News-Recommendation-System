@@ -10,6 +10,21 @@ class AuthRepository:
     
     def get_user_by_id(self, user_id: int):
         return self.session.query(User).filter(User.id == user_id).first()
+    
+    def get_users_paginated(self, page: int = 1, per_page: int = 20):
+        offset = (page - 1) * per_page
+
+        users = (
+            self.session.query(User)
+            .order_by(User.id)
+            .offset(offset)
+            .limit(per_page)
+            .all()
+        )
+
+        total = self.session.query(User).count()
+
+        return users, total
 
     def create_user(self, username: str, hashed_password: str):
         user = User(username=username, password=hashed_password)
