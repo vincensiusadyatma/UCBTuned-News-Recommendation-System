@@ -71,3 +71,29 @@ class EvaluationService:
             "f1_score": sum(d["f1_score"] for d in evaluation_data) / n,
             "map": self.calculate_map(evaluation_data) 
         }
+    def get_metric_by_user_id(self, user_id: int):
+        results = self.repo.get_all()
+
+        # filter hanya user tertentu
+        user_results = [r for r in results if r.user_id == user_id]
+
+        if not user_results:
+            return None
+
+        data = {
+            "user_id": user_id,
+            "precision": {},
+            "recall": {},
+            "f1_score": {},
+            "average_precision": {}
+        }
+
+        for r in user_results:
+            k_key = f"k{r.k}"
+
+            data["precision"][k_key] = r.precision
+            data["recall"][k_key] = r.recall
+            data["f1_score"][k_key] = r.f1_score
+            data["average_precision"][k_key] = r.average_precision or 0
+
+        return data

@@ -241,3 +241,26 @@ def get_map():
 
     finally:
         session.close()
+
+@evaluation_bp.route("/evaluation/user/<int:user_id>", methods=["GET"])
+def get_metric_by_user(user_id):
+    session = Session()
+
+    try:
+        service = EvaluationService(session)
+
+        data = service.get_metric_by_user_id(user_id)
+
+        if not data:
+            return jsonify({
+                "message": f"User {user_id} tidak ditemukan"
+            }), 404
+
+        return jsonify(data)
+
+    except Exception as e:
+        print("ERROR:", e)
+        return jsonify({"message": "Internal server error"}), 500
+
+    finally:
+        session.close()
