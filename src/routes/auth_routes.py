@@ -33,10 +33,13 @@ def login():
         }))
 
         response.set_cookie(
-            "access-token", 
+            "access-token",
             result["token"],
             expires=result["expires_at"],
-            httponly=True
+            httponly=True,
+            secure=True,
+            samesite="None",
+            path="/"
         )
 
         return response
@@ -111,10 +114,10 @@ def profile():
 
     return jsonify({
         "message": "Success",
-        "user_id" : user.id,
-        "username" : user.username
+        "user_id": user.id,
+        "username": user.username,
+        "role": user.role.name if user.role else None
     })
-
 
 @auth_bp.route("/logout", methods=["POST"])
 def logout():

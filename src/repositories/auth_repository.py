@@ -1,7 +1,7 @@
 from src.config import Session
 from src.models.User import User
 from sqlalchemy.exc import SQLAlchemyError
-
+from sqlalchemy.orm import joinedload
 
 class AuthRepository:
 
@@ -21,12 +21,12 @@ class AuthRepository:
     def get_user_by_id(self, user_id: int):
         session = Session()
         try:
-            return session.query(User).filter(User.id == user_id).first()
-
-        except SQLAlchemyError as e:
-            session.rollback()
-            raise e
-
+            return (
+                session.query(User)
+                .options(joinedload(User.role))  # 🔥 penting
+                .filter(User.id == user_id)
+                .first()
+            )
         finally:
             session.close()
 
@@ -59,7 +59,7 @@ class AuthRepository:
     def create_user(self, username: str, hashed_password: str):
         session = Session()
         try:
-            user = User(username=username, password=hashed_password)
+            user = User(username=username, password=hashed_password,role_id=2)
             session.add(user)
             session.commit()
             session.refresh(user)

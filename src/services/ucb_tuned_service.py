@@ -43,6 +43,37 @@ class UcbTunedService:
         bonus = math.sqrt((math.log(t) / s) * min(0.25, vj))
 
         return mean + bonus
+    
+    def submit_feedback(self, data):
+        if not data:
+            raise ValueError("Body JSON tidak boleh kosong")
+
+        user_id = data.get("user_id")
+        news_id = data.get("news_id")
+        feedback = data.get("feedback")
+
+        if user_id is None or news_id is None or feedback is None:
+            raise ValueError("user_id, news_id, dan feedback wajib diisi")
+
+        if feedback not in [0, 1]:
+            raise ValueError("feedback harus 0 (dislike) atau 1 (like)")
+
+        try:
+            self.ucb_repo.add_feedback(
+                user_id=user_id,
+                news_id=news_id,
+                feedback=feedback
+            )
+
+            return {
+                "user_id": user_id,
+                "news_id": news_id,
+                "feedback": feedback
+            }
+
+        except Exception as e:
+            self.ucb_repo.rollback()
+            raise e
 
     def recommend(self, news_id, top_k=5, candidate_size=20):
         candidate_size = max(candidate_size, top_k)
@@ -95,7 +126,7 @@ class UcbTunedService:
             vj = self._variance_vj(raw_rewards, t)
             ucb_score = self._ucb_tuned_score(raw_rewards, t)
 
-            final_score = (0.7 * ucb_score) + (0.3 * float(item["score"]))
+            final_score = ucb_score +  float(item["score"])
 
             ranked.append({
                 "news_id": nid,

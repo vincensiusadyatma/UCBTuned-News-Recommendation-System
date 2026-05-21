@@ -47,8 +47,6 @@ class NewsRepository:
         new_news = News(
             title=title,
             content=content,
-            link="",  
-            source="unknown"  
         )
         self.session.add(new_news)
         self.session.commit()

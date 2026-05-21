@@ -61,8 +61,6 @@ class CbfService:
 
     def cosine_similarity(self, vec1, vec2):
         dot_product = 0
-
-    
         for word in vec1:
             if word in vec2:
                 dot_product += vec1[word] * vec2[word]
@@ -77,10 +75,7 @@ class CbfService:
             sum2 += v * v
         norm2 = math.sqrt(sum2)
 
-     
-        if norm1 == 0:
-            return 0
-        if norm2 == 0:
+        if norm1 == 0 or norm2 == 0:
             return 0
 
         return dot_product / (norm1 * norm2)
@@ -88,30 +83,32 @@ class CbfService:
  
     def compute_tfidf(self):
         df = pd.read_csv(self.input_csv)
-
-   
         df = df.reset_index(drop=True)
-
-   
-        df["cbf_text"] = df["Judul"].fillna("") + " " + df["Content"].fillna("")
-
+        df["cbf_text"] = (
+            df["Judul"].fillna("") +
+            " " +
+            df["Content"].fillna("")
+        )
         tf_list = []
+
         for text in df["cbf_text"]:
             tf = self.compute_tf(text)
             tf_list.append(tf)
 
         df["TF"] = tf_list
-
- 
         idf = self.compute_idf(df["cbf_text"])
-
-     
         tfidf_list = []
+        
         for tf in df["TF"]:
             tfidf = self.compute_tfidf_vector(tf, idf)
             tfidf_list.append(tfidf)
 
         df["TF_IDF"] = tfidf_list
+
+       
+        output_path = "dataset/news_tfidf.csv"
+
+        df.to_csv(output_path, index=False)
 
         return df
 
@@ -157,7 +154,6 @@ class CbfService:
         if len(news_list) != len(df):
             raise ValueError("Jumlah data tidak sama")
 
-  
         news_map = {}
         for news in news_list:
             news_map[news.id] = news.title

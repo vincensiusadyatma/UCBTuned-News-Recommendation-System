@@ -41,57 +41,28 @@ def recommend(news_id):
 def submit_feedback():
     data = request.get_json()
 
-  
-    if not data:
-        return jsonify({
-            "status": "error",
-            "message": "Body JSON tidak boleh kosong"
-        }), 400
-
-    user_id = data.get("user_id")
-    news_id = data.get("news_id")
-    feedback = data.get("feedback")
-
-    if user_id is None or news_id is None or feedback is None:
-        return jsonify({
-            "status": "error",
-            "message": "user_id, news_id, dan feedback wajib diisi"
-        }), 400
-
-    if feedback not in [0, 1]:
-        return jsonify({
-            "status": "error",
-            "message": "feedback harus 0 (dislike) atau 1 (like)"
-        }), 400
-
-    session = Session()
+    service = UcbTunedService()
 
     try:
-        new_feedback = NewsFeedback(
-            user_id=user_id,
-            news_id=news_id,
-            feedback=feedback
-        )
-
-        session.add(new_feedback)
-        session.commit()
+        result = service.submit_feedback(data)
 
         return jsonify({
             "status": "success",
             "message": "Feedback berhasil disimpan",
-            "data": {
-                "user_id": user_id,
-                "news_id": news_id,
-                "feedback": feedback
-            }
+            "data": result
         })
 
+    except ValueError as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 400
+
     except Exception as e:
-        session.rollback()
         return jsonify({
             "status": "error",
             "message": str(e)
         }), 500
 
     finally:
-        session.close()
+        service.close()

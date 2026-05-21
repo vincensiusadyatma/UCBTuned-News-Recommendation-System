@@ -10,8 +10,6 @@ def get_news():
     return jsonify([{
         "id": n.id,
         "title": n.title,
-        "link": n.link,
-        "source": n.source,
         "content" : n.content
     } for n in news_list])
 
@@ -29,7 +27,6 @@ def get_news_per_page():
         "news": [{
             "id": n.id,
             "title": n.title,
-            "link": n.link,
             "content" : n.content
         } for n in news_list]
     })
@@ -64,8 +61,6 @@ def get_news_by_id(news_id):
             "id": news.id,
             "title": news.title,
             "content": news.content,
-            "source": news.source,
-            "link": news.link,
             "time": news.time,
             
         })
@@ -92,7 +87,6 @@ def search_news():
             "news": [{
                 "id": n.id,
                 "title": n.title,
-                "link": n.link,
                 "content": n.content
             } for n in news_list]
         })

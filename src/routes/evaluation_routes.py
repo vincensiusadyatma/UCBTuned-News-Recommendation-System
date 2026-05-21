@@ -264,3 +264,59 @@ def get_metric_by_user(user_id):
 
     finally:
         session.close()
+
+@evaluation_bp.route("/evaluation/general/precision", methods=["GET"])
+def get_general_precision():
+    session = Session()
+
+    try:
+        service = EvaluationService(session)
+
+        data = service.get_general_metrics("precision")
+
+        return jsonify(data)
+
+    finally:
+        session.close()
+
+@evaluation_bp.route("/evaluation/general/recall", methods=["GET"])
+def get_general_recall():
+    session = Session()
+
+    try:
+        service = EvaluationService(session)
+
+        data = service.get_general_metrics("recall")
+
+        return jsonify(data)
+
+    finally:
+        session.close()
+
+@evaluation_bp.route("/evaluation/general/f1", methods=["GET"])
+def get_general_f1():
+    session = Session()
+
+    try:
+        service = EvaluationService(session)
+
+        data = service.get_general_metrics("f1_score")
+
+        return jsonify(data)
+
+    finally:
+        session.close()
+
+@evaluation_bp.route("/evaluation/general/ap", methods=["GET"])
+def get_general_ap():
+    session = Session()
+
+    try:
+        service = EvaluationService(session)
+
+        data = service.get_general_metrics("average_precision")
+
+        return jsonify(data)
+
+    finally:
+        session.close()
