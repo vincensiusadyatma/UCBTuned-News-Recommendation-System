@@ -23,10 +23,15 @@ class AuthRepository:
         try:
             return (
                 session.query(User)
-                .options(joinedload(User.role))  # 🔥 penting
+                .options(joinedload(User.role))
                 .filter(User.id == user_id)
                 .first()
             )
+
+        except SQLAlchemyError as e:
+            session.rollback()
+            raise e
+
         finally:
             session.close()
 

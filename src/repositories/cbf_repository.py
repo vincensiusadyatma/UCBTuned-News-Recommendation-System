@@ -9,10 +9,16 @@ class CbfRepository:
     def get_all_news_ordered(self):
         return self.session.query(News).order_by(News.id.asc()).all()
 
-    def get_top_similar_news(self, news_id: int, top_k: int = 5):
+    def get_news_by_id(self, news_id: int):
+        return (
+            self.session.query(News)
+            .filter(News.id == news_id)
+            .first()
+        )
+
+    def get_top_similar_news(self, news_id: int, top_k: int = 10):
         return (
             self.session.query(NewsSimilarity)
-            .join(News, News.id == NewsSimilarity.similar_news_id)
             .filter(NewsSimilarity.news_id == news_id)
             .order_by(NewsSimilarity.score.desc())
             .limit(top_k)

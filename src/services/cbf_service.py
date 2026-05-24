@@ -147,48 +147,68 @@ class CbfService:
         return rows
 
 
-    def recommendation(self, news_id, candidate_size=20):
-        df = self.compute_tfidf()
-        news_list = self.repo.get_all_news_ordered()
+    # def recommendation(self, news_id, candidate_size=20):
+    #     df = self.compute_tfidf()
+    #     news_list = self.repo.get_all_news_ordered()
 
-        if len(news_list) != len(df):
-            raise ValueError("Jumlah data tidak sama")
+    #     if len(news_list) != len(df):
+    #         raise ValueError("Jumlah data tidak sama")
 
-        news_map = {}
-        for news in news_list:
-            news_map[news.id] = news.title
+    #     news_map = {}
+    #     for news in news_list:
+    #         news_map[news.id] = news.title
 
-        target_index = None
-        for i in range(len(news_list)):
-            if news_list[i].id == news_id:
-                target_index = i
-                break
+    #     target_index = None
+    #     for i in range(len(news_list)):
+    #         if news_list[i].id == news_id:
+    #             target_index = i
+    #             break
 
-        if target_index is None:
-            raise ValueError("News ID tidak ditemukan")
+    #     if target_index is None:
+    #         raise ValueError("News ID tidak ditemukan")
 
-        target_vec = df["TF_IDF"].iloc[target_index]
+    #     target_vec = df["TF_IDF"].iloc[target_index]
+
+    #     results = []
+
+    #     for i in range(len(df)):
+
+    #         if i == target_index:
+    #             continue
+
+    #         vec = df["TF_IDF"].iloc[i]
+    #         sim = self.cosine_similarity(target_vec, vec)
+
+    #         result = {
+    #             "news_id": news_id,
+    #             "similar_news_id": news_list[i].id,
+    #             "title": news_map.get(news_list[i].id, "Tanpa Judul"),
+    #             "score": float(sim)
+    #         }
+
+    #         results.append(result)
+
+      
+    #     results = sorted(results, key=lambda item: item["score"], reverse=True)
+
+    #     return results[:candidate_size]
+
+    def recommendation(self, news_id, candidate_size=10):
+        similarities = self.repo.get_top_similar_news(
+            news_id=news_id,
+            top_k=candidate_size
+        )
 
         results = []
 
-        for i in range(len(df)):
+        for sim in similarities:
+            news = self.repo.get_news_by_id(sim.similar_news_id)
 
-            if i == target_index:
-                continue
-
-            vec = df["TF_IDF"].iloc[i]
-            sim = self.cosine_similarity(target_vec, vec)
-
-            result = {
+            results.append({
                 "news_id": news_id,
-                "similar_news_id": news_list[i].id,
-                "title": news_map.get(news_list[i].id, "Tanpa Judul"),
-                "score": float(sim)
-            }
+                "similar_news_id": sim.similar_news_id,
+                "title": news.title if news else "Tanpa Judul",
+                "score": float(sim.score)
+            })
 
-            results.append(result)
-
-      
-        results = sorted(results, key=lambda item: item["score"], reverse=True)
-
-        return results[:candidate_size]
+        return results
