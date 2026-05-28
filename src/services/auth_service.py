@@ -59,3 +59,24 @@ class AuthService:
 
         except jwt.ExpiredSignatureError:
             return None
+        
+    def get_all_users(self, page: int = 1, per_page: int = 20):
+        users, total = self.repo.get_users_paginated(page, per_page)
+
+        total_pages = (total + per_page - 1) // per_page
+
+        result = {
+            "users": [
+                {
+                    "id": user.id,
+                    "username": user.username
+                }
+                for user in users
+            ],
+            "page": page,
+            "per_page": per_page,
+            "total_data": total,
+            "total_pages": total_pages
+        }
+
+        return result

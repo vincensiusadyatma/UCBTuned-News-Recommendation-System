@@ -27,6 +27,18 @@ class UcbTunedRepository:
             stats[news_id]["rewards"].append(1 if feedback > 0 else 0)
 
         return stats
+    
+    def add_feedback(self, user_id, news_id, feedback):
+        new_feedback = NewsFeedback(
+            user_id=user_id,
+            news_id=news_id,
+            feedback=feedback
+        )
+
+        self.session.add(new_feedback)
+        self.session.commit()
+
+        return new_feedback
 
     def close(self):
         self.session.close()

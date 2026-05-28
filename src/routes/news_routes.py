@@ -10,8 +10,6 @@ def get_news():
     return jsonify([{
         "id": n.id,
         "title": n.title,
-        "link": n.link,
-        "source": n.source,
         "content" : n.content
     } for n in news_list])
 
@@ -29,7 +27,6 @@ def get_news_per_page():
         "news": [{
             "id": n.id,
             "title": n.title,
-            "link": n.link,
             "content" : n.content
         } for n in news_list]
     })
@@ -64,8 +61,6 @@ def get_news_by_id(news_id):
             "id": news.id,
             "title": news.title,
             "content": news.content,
-            "source": news.source,
-            "link": news.link,
             "time": news.time,
             
         })
@@ -92,7 +87,50 @@ def search_news():
             "news": [{
                 "id": n.id,
                 "title": n.title,
-                "link": n.link,
                 "content": n.content
             } for n in news_list]
         })
+
+@news_bp.route("", methods=["POST"])
+def create_news():
+    try:
+        data = request.get_json()
+
+        title = data.get("title")
+        content = data.get("content")
+
+        news = news_service.create_news(title, content)
+
+        return jsonify({
+            "message": "News created successfully",
+            "data": {
+                "id": news.id,
+                "title": news.title,
+                "content": news.content
+            }
+        }), 201
+
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    
+@news_bp.route("/<int:news_id>", methods=["PUT"])
+def update_news(news_id):
+    try:
+        data = request.get_json()
+
+        title = data.get("title")
+        content = data.get("content")
+
+        updated_news = news_service.update_news(news_id, title, content)
+
+        return jsonify({
+            "message": "News updated successfully",
+            "data": {
+                "id": updated_news.id,
+                "title": updated_news.title,
+                "content": updated_news.content
+            }
+        })
+
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404

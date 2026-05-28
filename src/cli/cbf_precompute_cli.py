@@ -8,7 +8,7 @@ from ..services.cbf_service import CbfService
 def cbf_precompute():
     cbf = CbfService()
     print("Mulai proses TF-IDF")
-    df = cbf.compute_tfidf_manual()
+    df = cbf.compute_tfidf()
     print("TF-IDF selesai. Jumlah data:", len(df))
 
     print("Mulai hitung similarity")

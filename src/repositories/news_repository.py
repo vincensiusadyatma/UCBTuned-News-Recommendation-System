@@ -42,3 +42,26 @@ class NewsRepository:
         return self.session.query(News).filter(
             News.title.ilike(f"%{keyword}%")
         ).count()
+    
+    def create_news(self, title: str, content: str):
+        new_news = News(
+            title=title,
+            content=content,
+        )
+        self.session.add(new_news)
+        self.session.commit()
+        return new_news
+    
+
+    def update_news(self, news_id: int, title: str = None, content: str = None):
+        news = self.get_by_id(news_id)
+        if not news:
+            return None
+
+        if title:
+            news.title = title
+        if content:
+            news.content = content
+
+        self.session.commit()
+        return news
