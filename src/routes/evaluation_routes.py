@@ -23,37 +23,30 @@ def sync_evaluation():
 
         user_k_metrics = {}
 
-        # ================= LOOP LOG =================
         for log in logs:
             user_id = log.user_id
 
             recs = [int(x) for x in (log.recommendations or [])]
             rels = [int(x) for x in (log.relevants or [])]
 
-            if not rels:
+            if not recs:
                 continue
 
             if user_id not in user_k_metrics:
                 user_k_metrics[user_id] = {
-                    k: {"p": [], "r": [], "ap": []} for k in K_VALUES
+                    k: {"p": [], "r": [], "ap": []}
+                    for k in K_VALUES
                 }
 
             for k in K_VALUES:
-               
-                if not recs:
-                    continue
-
-                k_eff = min(k, len(recs))
-
-                p = service.precision_at_k(recs, rels, k_eff)
-                r = service.recall_at_k(recs, rels, k_eff)
-                ap = service.average_precision(recs, rels, k_eff)
+                p = service.precision_at_k(recs, rels, k)
+                r = service.recall_at_k(recs, rels, k)
+                ap = service.average_precision(recs, rels, k)
 
                 user_k_metrics[user_id][k]["p"].append(p)
                 user_k_metrics[user_id][k]["r"].append(r)
                 user_k_metrics[user_id][k]["ap"].append(ap)
 
-        # ================= AGGREGATE PER USER =================
         evaluation_results = []
 
         for user_id, k_data in user_k_metrics.items():
@@ -79,15 +72,16 @@ def sync_evaluation():
                     "k": k
                 })
 
-        # ================= SAVE =================
         service.repo.delete_all()
         service.repo.save_bulk(evaluation_results)
 
-        # ================= SUMMARY PER K =================
         summary_by_k = []
 
         for k in K_VALUES:
-            k_rows = [r for r in evaluation_results if r["k"] == k]
+            k_rows = [
+                r for r in evaluation_results
+                if r["k"] == k
+            ]
 
             if not k_rows:
                 continue
@@ -102,7 +96,6 @@ def sync_evaluation():
                 "map": sum(r["average_precision"] for r in k_rows) / n
             })
 
-        # ================= GLOBAL =================
         global_summary = service.calculate_mean_metrics(evaluation_results)
 
         return jsonify({

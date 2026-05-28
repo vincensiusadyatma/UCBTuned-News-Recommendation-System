@@ -28,23 +28,13 @@ class EvaluationService:
         return precision
 
     def recall_at_k(self, recommended, relevant, k):
-
         recommended_at_k = recommended[:k]
+        relevant_set = set(relevant)
 
-        relevant_items = (
-            set(recommended_at_k) &
-            set(relevant)
-        )
+        relevant_items = set(recommended_at_k) & relevant_set
 
-        total_relevant_items = len(relevant_items)
-
-        if len(relevant) > 0:
-
-            recall = (
-                total_relevant_items /
-                len(relevant)
-            )
-
+        if len(relevant_set) > 0:
+            recall = len(relevant_items) / len(relevant_set)
         else:
             recall = 0
 
@@ -64,32 +54,20 @@ class EvaluationService:
         return f1
     
     def average_precision(self, recommended, relevant, k):
-
         recommended_at_k = recommended[:k]
 
         total_score = 0.0
         total_hit = 0
+        relevant_set = set(relevant)
 
         for index, item in enumerate(recommended_at_k):
-
-            if item in relevant:
-
+            if item in relevant_set:
                 total_hit += 1
-
-                precision = (
-                    total_hit /
-                    (index + 1)
-                )
-
+                precision = total_hit / (index + 1)
                 total_score += precision
 
-        if len(relevant) > 0:
-
-            average_precision = (
-                total_score /
-                len(relevant)
-            )
-
+        if len(relevant_set) > 0:
+            average_precision = total_score / min(len(relevant_set), k)
         else:
             average_precision = 0
 
