@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from src.config import Base
 
@@ -10,20 +10,26 @@ class User(Base):
     username = Column(String(100), nullable=False)
     password = Column(String(255), nullable=False)
 
-   
+    
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=True)
+
+
+    role = relationship(
+        "Role",
+        back_populates="users"
+    )
+
     feedbacks = relationship(
         "NewsFeedback",
         back_populates="user",
         cascade="all, delete-orphan"
     )
 
-
     evaluations = relationship(
         "EvaluationResult",
         back_populates="user",
         cascade="all, delete-orphan"
     )
-
 
     recommendation_logs = relationship(
         "RecommendationLog",
@@ -32,4 +38,8 @@ class User(Base):
     )
 
     def __repr__(self) -> str:
-        return f"User(id={self.id!r}, username={self.username!r})"
+        return (
+            f"User(id={self.id!r}, "
+            f"username={self.username!r}, "
+            f"role_id={self.role_id!r})"
+        )

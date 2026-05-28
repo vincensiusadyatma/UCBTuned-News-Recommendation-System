@@ -19,28 +19,26 @@ def sync_evaluation():
 
         service = EvaluationService(session)
 
-        K_VALUES = [1, 3, 5]
+        K_VALUES = [1, 2, 3, 4, 5]
+
         user_k_metrics = {}
 
-   
         for log in logs:
             user_id = log.user_id
 
             recs = [int(x) for x in (log.recommendations or [])]
             rels = [int(x) for x in (log.relevants or [])]
 
-            if not rels:
+            if not recs:
                 continue
 
             if user_id not in user_k_metrics:
                 user_k_metrics[user_id] = {
-                    k: {"p": [], "r": [], "ap": []} for k in K_VALUES
+                    k: {"p": [], "r": [], "ap": []}
+                    for k in K_VALUES
                 }
 
             for k in K_VALUES:
-                if len(recs) < k:
-                    continue
-
                 p = service.precision_at_k(recs, rels, k)
                 r = service.recall_at_k(recs, rels, k)
                 ap = service.average_precision(recs, rels, k)
@@ -49,7 +47,6 @@ def sync_evaluation():
                 user_k_metrics[user_id][k]["r"].append(r)
                 user_k_metrics[user_id][k]["ap"].append(ap)
 
-      
         evaluation_results = []
 
         for user_id, k_data in user_k_metrics.items():
@@ -71,19 +68,20 @@ def sync_evaluation():
                     "precision": avg_p,
                     "recall": avg_r,
                     "f1_score": f1,
-                    "average_precision": avg_ap, 
+                    "average_precision": avg_ap,
                     "k": k
                 })
 
-    
         service.repo.delete_all()
         service.repo.save_bulk(evaluation_results)
 
- 
         summary_by_k = []
 
         for k in K_VALUES:
-            k_rows = [r for r in evaluation_results if r["k"] == k]
+            k_rows = [
+                r for r in evaluation_results
+                if r["k"] == k
+            ]
 
             if not k_rows:
                 continue
@@ -95,10 +93,9 @@ def sync_evaluation():
                 "precision": sum(r["precision"] for r in k_rows) / n,
                 "recall": sum(r["recall"] for r in k_rows) / n,
                 "f1_score": sum(r["f1_score"] for r in k_rows) / n,
-                "map": sum(r["average_precision"] for r in k_rows) / n 
+                "map": sum(r["average_precision"] for r in k_rows) / n
             })
 
-      
         global_summary = service.calculate_mean_metrics(evaluation_results)
 
         return jsonify({
@@ -127,17 +124,12 @@ def get_precision():
         user_map = {}
 
         for r in results:
-            user_id = r.user_id
+            uid = r.user_id
 
-            if user_id not in user_map:
-                user_map[user_id] = {"user_id": user_id, "k1": 0, "k3": 0, "k5": 0}
+            if uid not in user_map:
+                user_map[uid] = {"user_id": uid}
 
-            if r.k == 1:
-                user_map[user_id]["k1"] = r.precision
-            elif r.k == 3:
-                user_map[user_id]["k3"] = r.precision
-            elif r.k == 5:
-                user_map[user_id]["k5"] = r.precision
+            user_map[uid][f"k{r.k}"] = r.precision
 
         return jsonify(list(user_map.values()))
 
@@ -157,17 +149,12 @@ def get_recall():
         user_map = {}
 
         for r in results:
-            user_id = r.user_id
+            uid = r.user_id
 
-            if user_id not in user_map:
-                user_map[user_id] = {"user_id": user_id, "k1": 0, "k3": 0, "k5": 0}
+            if uid not in user_map:
+                user_map[uid] = {"user_id": uid}
 
-            if r.k == 1:
-                user_map[user_id]["k1"] = r.recall
-            elif r.k == 3:
-                user_map[user_id]["k3"] = r.recall
-            elif r.k == 5:
-                user_map[user_id]["k5"] = r.recall
+            user_map[uid][f"k{r.k}"] = r.recall
 
         return jsonify(list(user_map.values()))
 
@@ -186,17 +173,12 @@ def get_f1():
         user_map = {}
 
         for r in results:
-            user_id = r.user_id
+            uid = r.user_id
 
-            if user_id not in user_map:
-                user_map[user_id] = {"user_id": user_id, "k1": 0, "k3": 0, "k5": 0}
+            if uid not in user_map:
+                user_map[uid] = {"user_id": uid}
 
-            if r.k == 1:
-                user_map[user_id]["k1"] = r.f1_score
-            elif r.k == 3:
-                user_map[user_id]["k3"] = r.f1_score
-            elif r.k == 5:
-                user_map[user_id]["k5"] = r.f1_score
+            user_map[uid][f"k{r.k}"] = r.f1_score
 
         return jsonify(list(user_map.values()))
 
@@ -215,22 +197,12 @@ def get_ap():
         user_map = {}
 
         for r in results:
-            user_id = r.user_id
+            uid = r.user_id
 
-            if user_id not in user_map:
-                user_map[user_id] = {
-                    "user_id": user_id,
-                    "k1": 0,
-                    "k3": 0,
-                    "k5": 0
-                }
+            if uid not in user_map:
+                user_map[uid] = {"user_id": uid}
 
-            if r.k == 1:
-                user_map[user_id]["k1"] = r.average_precision or 0
-            elif r.k == 3:
-                user_map[user_id]["k3"] = r.average_precision or 0
-            elif r.k == 5:
-                user_map[user_id]["k5"] = r.average_precision or 0
+            user_map[uid][f"k{r.k}"] = r.average_precision or 0
 
         return jsonify(list(user_map.values()))
 
@@ -245,7 +217,7 @@ def get_map():
         service = EvaluationService(session)
         results = service.repo.get_all()
 
-        # ubah ke dict
+
         evaluation_data = [
             {
                 "user_id": r.user_id,
@@ -259,6 +231,85 @@ def get_map():
         return jsonify({
             "map": map_score
         })
+
+    finally:
+        session.close()
+
+@evaluation_bp.route("/evaluation/user/<int:user_id>", methods=["GET"])
+def get_metric_by_user(user_id):
+    session = Session()
+
+    try:
+        service = EvaluationService(session)
+
+        data = service.get_metric_by_user_id(user_id)
+
+        if not data:
+            return jsonify({
+                "message": f"User {user_id} tidak ditemukan"
+            }), 404
+
+        return jsonify(data)
+
+    except Exception as e:
+        print("ERROR:", e)
+        return jsonify({"message": "Internal server error"}), 500
+
+    finally:
+        session.close()
+
+@evaluation_bp.route("/evaluation/general/precision", methods=["GET"])
+def get_general_precision():
+    session = Session()
+
+    try:
+        service = EvaluationService(session)
+
+        data = service.get_general_metrics("precision")
+
+        return jsonify(data)
+
+    finally:
+        session.close()
+
+@evaluation_bp.route("/evaluation/general/recall", methods=["GET"])
+def get_general_recall():
+    session = Session()
+
+    try:
+        service = EvaluationService(session)
+
+        data = service.get_general_metrics("recall")
+
+        return jsonify(data)
+
+    finally:
+        session.close()
+
+@evaluation_bp.route("/evaluation/general/f1", methods=["GET"])
+def get_general_f1():
+    session = Session()
+
+    try:
+        service = EvaluationService(session)
+
+        data = service.get_general_metrics("f1_score")
+
+        return jsonify(data)
+
+    finally:
+        session.close()
+
+@evaluation_bp.route("/evaluation/general/ap", methods=["GET"])
+def get_general_ap():
+    session = Session()
+
+    try:
+        service = EvaluationService(session)
+
+        data = service.get_general_metrics("average_precision")
+
+        return jsonify(data)
 
     finally:
         session.close()

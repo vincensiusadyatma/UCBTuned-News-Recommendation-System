@@ -33,10 +33,13 @@ def login():
         }))
 
         response.set_cookie(
-            "access-token", 
+            "access-token",
             result["token"],
             expires=result["expires_at"],
-            httponly=True
+            httponly=True,
+            secure=True,
+            samesite="None",
+            path="/"
         )
 
         return response
@@ -111,13 +114,33 @@ def profile():
 
     return jsonify({
         "message": "Success",
-        "user_id" : user.id,
-        "username" : user.username
+        "user_id": user.id,
+        "username": user.username,
+        "role": user.role.name if user.role else None
     })
-
 
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
     response = make_response(jsonify({"message": "logout success"}))
     response.delete_cookie("access-token")
     return response
+
+@auth_bp.route("/users", methods=["GET"])
+def get_users():
+    try:
+        page = request.args.get("page", default=1, type=int)
+        per_page = request.args.get("per_page", default=20, type=int)
+
+        result = service.get_all_users(page, per_page)
+
+        return jsonify({
+            "status": "success",
+            **result
+        })
+
+    except Exception as e:
+        print(e)
+        return jsonify({
+            "status": "error",
+            "message": "Internal server error"
+        }), 500
